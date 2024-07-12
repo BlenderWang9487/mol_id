@@ -170,7 +170,9 @@ class PositionalEncoding(nn.Module):
         :param cu_seqlens: cumulative sequence lengths (batch_size+1, )
         """
 
-        positions = torch.arange(cu_seqlens[-1])  # (total len,)
+        positions = torch.arange(
+            cu_seqlens[-1], device=cu_seqlens.device
+        )  # (total len,)
         offset = torch.repeat_interleave(
             cu_seqlens[:-1], cu_seqlens[1:] - cu_seqlens[:-1]
         )

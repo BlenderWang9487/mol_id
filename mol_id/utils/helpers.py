@@ -118,7 +118,7 @@ def make_mlm_input_impl(
     probability_matrix = torch.full(labels.shape, mask_prob, device=device)
 
     probability_matrix.masked_fill_(
-        special_tokens_mask, value=0.0
+        special_tokens_mask.bool(), value=0.0
     )  # no mask for special tokens
 
     masked_indices = torch.bernoulli(probability_matrix).bool()
