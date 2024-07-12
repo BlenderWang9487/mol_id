@@ -176,6 +176,17 @@ def train(
 
 
 @app.command()
+def to_pytorch(
+    ckpt_path: Path,
+    output_dir: Path = None
+):
+    if output_dir is None:
+        output_dir = ckpt_path.parent.parent / "pytorch-ckpts" / ckpt_path.name.removesuffix('.ckpt')
+    module = PretrainLightningModule.load_from_checkpoint(str(ckpt_path), map_location='cpu')    
+    module.model.save_pretrained(str(output_dir))
+    module.tokenizer.save_pretrained(str(output_dir))
+
+@app.command()
 def placeholder():
     pass
 
