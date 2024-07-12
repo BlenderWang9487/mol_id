@@ -24,7 +24,7 @@ class SmilesCollator:
 
     def __init__(self, tokenizer: PreTrainedTokenizerFast, max_len: int):
         self.tokenizer = tokenizer
-        self.mask_id = tokenizer.mask_token_id
+        self.mask_id = tokenizer.convert_tokens_to_ids('<mask>')
         self.max_len = max_len
 
     def collate_impl(
