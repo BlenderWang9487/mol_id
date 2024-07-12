@@ -24,7 +24,7 @@ class SmilesCollator:
 
     def __init__(self, tokenizer: PreTrainedTokenizerFast, max_len: int):
         self.tokenizer = tokenizer
-        self.mask_id = tokenizer.convert_tokens_to_ids('<mask>')
+        self.mask_id = tokenizer.convert_tokens_to_ids("<mask>")
         self.max_len = max_len
 
     def collate_impl(
@@ -75,6 +75,9 @@ class SmilesCollator:
             max_seqlen=max_seqlen,
             special_tokens_mask=cu_special_tokens_mask,
         )
+
+    def __call__(self, *args, **kwargs):
+        return self.collate_impl(*args, **kwargs)
 
 
 def make_mlm_input_impl(
