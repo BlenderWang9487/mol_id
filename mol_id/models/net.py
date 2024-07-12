@@ -1,4 +1,6 @@
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -20,6 +22,42 @@ class ModelArgs:
     norm_eps: float = 1e-5
     multiple_of: int = 64
     padding_idx: int = -1  # defined later by tokenizer
+    max_seq_len: int = 512
+    initializer_range: float = 0.02
+
+    def to_json(self):
+        return self.__dict__
+
+    def save_pretrained(self, output_dir: str):
+        output_dir_path = Path(output_dir)
+        output_dir_path.mkdir(parents=True, exist_ok=True)
+        (output_dir_path / "config.json").write_text(
+            json.dumps(self.to_json(), indent=1)
+        )
+
+    @classmethod
+    def from_pretrained(cls, output_dir: str):
+        output_dir_path = Path(output_dir)
+        config = json.loads((output_dir_path / "config.json").read_text())
+        return cls(**config)
+
+
+@torch.no_grad()
+def init_weights_impl(module, initializer_range: float):
+    """Initialize the weights"""
+    if isinstance(module, nn.Linear):
+        # Slightly different from the TF version which uses truncated_normal for initialization
+        # cf https://github.com/pytorch/pytorch/pull/5617
+        module.weight.data.normal_(mean=0.0, std=initializer_range)
+        if module.bias is not None:
+            module.bias.data.zero_()
+    elif isinstance(module, nn.Embedding):
+        module.weight.data.normal_(mean=0.0, std=initializer_range)
+        if module.padding_idx is not None:
+            module.weight.data[module.padding_idx].zero_()
+    elif isinstance(module, nn.LayerNorm):
+        module.bias.data.zero_()
+        module.weight.data.fill_(1.0)
 
 
 class TransformerBlock(nn.Module):
@@ -35,6 +73,7 @@ class TransformerBlock(nn.Module):
             n_heads (int): Number of attention heads.
             dim (int): Dimension size of the model.
             head_dim (int): Dimension size of each attention head.
+            multiple_of (int): Multiple of the model dimension.
             attention (Attention): Attention module.
             feed_forward (FeedForward): FeedForward module.
             layer_id (int): Identifier for the layer.
@@ -55,8 +94,6 @@ class TransformerBlock(nn.Module):
             dropout=0.0,
             causal=False,
             layer_idx=layer_id,
-            rotary_emb_dim=self.dim,
-            rotary_emb_base=10000.0,
             use_flash_attn=True,
         )
         self.feed_forward = GatedMlp(
@@ -97,6 +134,50 @@ class TransformerBlock(nn.Module):
         return out
 
 
+class PositionalEncoding(nn.Module):
+    """
+    compute sinusoid encoding.
+    """
+
+    def __init__(self, d_model, max_len):
+        """
+        constructor of sinusoid encoding class
+
+        :param d_model: dimension of model
+        :param max_len: max sequence length
+        """
+        super(PositionalEncoding, self).__init__()
+
+        # same size with input matrix (for adding with input matrix)
+        self.register_buffer("encoding", torch.zeros(max_len, d_model))
+
+        pos = torch.arange(0, max_len)
+        pos = pos.float().unsqueeze(dim=1)
+        # 1D => 2D unsqueeze to represent word's position
+
+        _2i = torch.arange(0, d_model, step=2).float()
+        # 'i' means index of d_model (e.g. embedding size = 50, 'i' = [0,50])
+        # "step=2" means 'i' multiplied with two (same with 2 * i)
+
+        self.encoding[:, 0::2] = torch.sin(pos / (10000 ** (_2i / d_model)))
+        self.encoding[:, 1::2] = torch.cos(pos / (10000 ** (_2i / d_model)))
+        # compute positional encoding to consider positional information of words
+
+    def forward(self, cu_seqlens: torch.Tensor):
+        """
+        forward function of sinusoid encoding
+
+        :param cu_seqlens: cumulative sequence lengths (batch_size+1, )
+        """
+
+        positions = torch.arange(cu_seqlens[-1])  # (total len,)
+        offset = torch.repeat_interleave(
+            cu_seqlens[:-1], cu_seqlens[1:] - cu_seqlens[:-1]
+        )
+        positions = positions - offset
+        return self.encoding[positions, :]
+
+
 @dataclass
 class TransformerOutput:
     last_hidden_state: torch.Tensor
@@ -116,6 +197,7 @@ class Transformer(nn.Module):
             vocab_size (int): Vocabulary size.
             n_layers (int): Number of layers in the model.
             tok_embeddings (ParallelEmbedding): Token embeddings.
+            pos_embeddings (PositionalEncoding): Positional embeddings.
             layers (torch.nn.ModuleList): List of Transformer blocks.
             norm (RMSNorm): Layer normalization for the model output.
             output (ColumnParallelLinear): Linear layer for final output.
@@ -130,6 +212,7 @@ class Transformer(nn.Module):
         self.tok_embeddings = nn.Embedding(
             params.vocab_size, params.dim, padding_idx=self.params.padding_idx
         )
+        self.pos_embeddings = PositionalEncoding(params.dim, params.max_seq_len)
 
         self.layers = torch.nn.ModuleList()
         for layer_id in range(params.n_layers):
@@ -138,7 +221,6 @@ class Transformer(nn.Module):
         self.norm = nn.LayerNorm(params.dim, eps=params.norm_eps)
         self.output = nn.Linear(params.dim, params.vocab_size, bias=False)
 
-    @torch.inference_mode()
     def forward(
         self,
         input_ids: torch.Tensor,
@@ -159,6 +241,7 @@ class Transformer(nn.Module):
 
         """
         h = self.tok_embeddings(input_ids)
+        h += self.pos_embeddings(cu_seqlens)
 
         for layer in self.layers:
             h = layer(h, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen)
@@ -166,3 +249,16 @@ class Transformer(nn.Module):
         if output_logits:
             output.logits = self.output(output.last_hidden_state)
         return output
+
+    def save_pretrained(self, output_dir: str):
+        self.params.save_pretrained(output_dir)
+        torch.save(self.state_dict(), Path(output_dir) / "pytorch_model.bin")
+
+    @classmethod
+    def from_pretrained(cls, output_dir: str):
+        params = ModelArgs.from_pretrained(output_dir)
+        model = cls(params)
+        model.load_state_dict(
+            torch.load(Path(output_dir) / "pytorch_model.bin", map_location="cpu")
+        )
+        return model
