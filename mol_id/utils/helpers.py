@@ -78,7 +78,7 @@ class SmilesCollator:
 
     def __call__(self, batch: list[dict]):
         texts = [x["smiles"] for x in batch]
-        return self.collate_impl(texts)
+        return self.collate_impl(texts).__dict__
 
 
 def make_mlm_input_impl(

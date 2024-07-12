@@ -115,7 +115,7 @@ class PretrainLightningModule(pl.LightningModule):
         special_tokens_mask: torch.BoolTensor,
     ):
         input_ids, labels, masked_indices = self.mlm_input_maker(
-            input_ids, special_tokens_mask
+            input_ids=input_ids, special_tokens_mask=special_tokens_mask
         )
         labels = labels[masked_indices]  # (total_lens,) -> (masked nnz, )
         return input_ids, labels, masked_indices
