@@ -76,8 +76,9 @@ class SmilesCollator:
             special_tokens_mask=cu_special_tokens_mask,
         )
 
-    def __call__(self, *args, **kwargs):
-        return self.collate_impl(*args, **kwargs)
+    def __call__(self, batch: list[dict]):
+        texts = [x["smiles"] for x in batch]
+        return self.collate_impl(texts)
 
 
 def make_mlm_input_impl(

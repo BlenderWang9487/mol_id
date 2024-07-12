@@ -7,11 +7,9 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerFast
 
-from ..models.net import (ModelArgs, Transformer, TransformerOutput,
-                          init_weights_impl)
+from ..models.net import ModelArgs, Transformer, TransformerOutput, init_weights_impl
 from ..utils.helpers import SmilesCollator, make_mlm_input_impl
-from ..utils.optim import (AdamWConfig,
-                           get_cosine_schedule_with_warmup_and_min_lr_lambda)
+from ..utils.optim import AdamWConfig, get_cosine_schedule_with_warmup_and_min_lr_lambda
 
 
 class PretrainLightningModule(pl.LightningModule):
@@ -60,7 +58,7 @@ class PretrainLightningModule(pl.LightningModule):
             self.tokenizer, max_len=self.model_config.max_seq_len
         )
 
-        mask_token_id = self.tokenizer.convert_tokens_to_ids('<mask>')
+        mask_token_id = self.tokenizer.convert_tokens_to_ids("<mask>")
         self.mlm_input_maker = partial(
             make_mlm_input_impl,
             mask_prob=mask_prob,
