@@ -21,7 +21,7 @@ app = typer.Typer(pretty_exceptions_enable=False)
 @app.command()
 def train(
     dataset_dir: str,
-    tokenizer_file: str,
+    tokenizer_path: str,
     # model config
     dim: int = 320,
     n_layers: int = 12,
@@ -39,13 +39,13 @@ def train(
     num_workers: int = 4,
     lr: float = 0.0004,
     min_lr: float = 0.00004,
-    warmup_steps: int = 1000,
+    warmup_steps: int = 2000,
     num_cycles: float = 0.5,
-    mask_prob: float = 0.15,
+    mask_prob: float = 0.40,
     mask_rand_prob: float = 0.1,
     mask_same_prob: float = 0.1,
-    batch_size: int = 32,
-    global_batch_size: int = 2048,
+    batch_size: int = 2048,
+    global_batch_size: int = 8192,
     epochs: int = 5,
     seed: int = 2486,
     # lightning trainer config
@@ -80,7 +80,9 @@ def train(
     print("version:", version)
 
     print("-- init config --")
-    tok = PreTrainedTokenizerFast(tokenizer_file=tokenizer_file)
+    tok: PreTrainedTokenizerFast = PreTrainedTokenizerFast.from_pretrained(
+        tokenizer_path
+    )
     model_config = ModelArgs(
         dim=dim,
         n_layers=n_layers,
@@ -104,7 +106,7 @@ def train(
     model = PretrainLightningModule(
         config=model_config.__dict__,
         adamw_config=adamw_config.__dict__,
-        tokenizer_file=tokenizer_file,
+        tokenizer_path=tokenizer_path,
         dataset_dir=dataset_dir,
         valid_size=valid_size,
         num_workers=num_workers,

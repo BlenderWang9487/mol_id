@@ -45,12 +45,16 @@ def filter(
     save_path: Path,
     pretrained_tokenizer: Path,
     max_len: int = 512,  # after tokenization
+    min_len: int = 8,  # after tokenization
     filter_unk: bool = True,
     num_proc: int = 4,
     num_shards: int = 10,
 ):
-    tok = PreTrainedTokenizerFast(tokenizer_file=str(pretrained_tokenizer))
+    tok: PreTrainedTokenizerFast = PreTrainedTokenizerFast.from_pretrained(
+        pretrained_tokenizer
+    )
     unk_id = tok.unk_token_id
+    print("### unk_id:", unk_id)
 
     dataset = datasets.load_from_disk(dataset_path)
     dataset.set_format("np")
@@ -63,7 +67,8 @@ def filter(
             return_attention_mask=False,
             return_length=True,
         )
-        len_filter = np.array(tok_output["length"]) <= max_len
+        lens = np.array(tok_output["length"])
+        len_filter = (lens <= max_len) & (lens >= min_len)
         if filter_unk:
             unk_filter = np.array([not (unk_id in x) for x in tok_output["input_ids"]])
             return len_filter & unk_filter

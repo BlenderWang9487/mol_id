@@ -72,5 +72,25 @@ def add_postprocessor(
     tokenizer.save(str(save_path))
 
 
+@app.command()
+def to_huggingface(
+    tokenizer_file: Path,
+    save_path: Path,
+):
+    from transformers import PreTrainedTokenizerFast
+
+    tokenizer = PreTrainedTokenizerFast(
+        tokenizer_file=str(tokenizer_file),
+    )
+
+    # explicitly set special tokens
+    tokenizer.unk_token = "<unk>"
+    tokenizer.cls_token = "<cls>"
+    tokenizer.sep_token = "<sep>"
+    tokenizer.pad_token = "<pad>"
+    tokenizer.mask_token = "<mask>"
+    tokenizer.save_pretrained(save_path)
+
+
 if __name__ == "__main__":
     app()

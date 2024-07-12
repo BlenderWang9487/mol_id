@@ -19,7 +19,7 @@ class PretrainLightningModule(pl.LightningModule):
         config: dict,
         adamw_config: dict,
         # tokenizer
-        tokenizer_file: str,
+        tokenizer_path: str,
         # dataset
         dataset_dir: str,
         valid_size: float = 0.005,
@@ -53,12 +53,14 @@ class PretrainLightningModule(pl.LightningModule):
 
         self.adamw_config = AdamWConfig(**adamw_config)
 
-        self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_file)
+        self.tokenizer: PreTrainedTokenizerFast = (
+            PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
+        )
         self.collator = SmilesCollator(
             self.tokenizer, max_len=self.model_config.max_seq_len
         )
 
-        mask_token_id = self.tokenizer.convert_tokens_to_ids("<mask>")
+        mask_token_id = self.tokenizer.mask_token_id
         self.mlm_input_maker = partial(
             make_mlm_input_impl,
             mask_prob=mask_prob,
