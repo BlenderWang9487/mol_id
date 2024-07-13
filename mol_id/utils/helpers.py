@@ -19,6 +19,14 @@ class CollateOutput:
     max_seqlen: int
     special_tokens_mask: torch.Tensor
 
+    def to(self, device: str):
+        return CollateOutput(
+            input_ids=self.input_ids.to(device),
+            cu_seqlens=self.cu_seqlens.to(device),
+            max_seqlen=self.max_seqlen,
+            special_tokens_mask=self.special_tokens_mask.to(device),
+        )
+
 
 class SmilesCollator:
 
