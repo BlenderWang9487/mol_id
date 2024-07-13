@@ -21,6 +21,16 @@ Pretrain weight (trained on 50M zinc SMILES for 5 epoch) is freely available on 
 
 - [huggingface model page](https://huggingface.co/blenderwang/mol_id)
 
+### Download model
+
+```bash
+huggingface-cli download blenderwang/mol_id \
+    --repo-type model \
+    --local-dir-use-symlinks False \
+    --exclude 'lightning_ckpt/*.ckpt' \
+    --local-dir <YOUR_OUTPUT_DIR>
+```
+
 ## Pretrain data
 
 Pretrain dataset is also available on huggingface
