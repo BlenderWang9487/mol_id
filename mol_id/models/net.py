@@ -134,6 +134,15 @@ class TransformerBlock(nn.Module):
         return out
 
 
+# This class is from https://github.com/hyunwoongko/transformer
+# and modified by me to fit the special input shape of flash attention varlen api
+"""
+@author : Hyunwoong
+@when : 2019-10-22
+@homepage : https://github.com/gusdnd852
+"""
+
+
 class PositionalEncoding(nn.Module):
     """
     compute sinusoid encoding.
