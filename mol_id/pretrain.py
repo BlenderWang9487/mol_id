@@ -103,7 +103,6 @@ def train(
     model = PretrainLightningModule(
         config=model_config.__dict__,
         adamw_config=adamw_config.__dict__,
-        tokenizer_path=tokenizer_path,
         dataset_dir=dataset_dir,
         valid_size=valid_size,
         num_workers=num_workers,
@@ -184,7 +183,6 @@ def to_pytorch(ckpt_path: Path, output_dir: Path = None):
         str(ckpt_path), map_location="cpu"
     )
     module.model.save_pretrained(str(output_dir))
-    module.tokenizer.save_pretrained(str(output_dir))
 
 
 @app.command()
