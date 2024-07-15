@@ -1,3 +1,11 @@
+NOTE = """
+DeprecationWarning:
+
+We are using molformer tokenizer now. This script is for reference only.
+
+We notice that using BPE to train a tokenizer will results
+"""
+
 from functools import partial
 from pathlib import Path
 
@@ -93,4 +101,7 @@ def to_huggingface(
 
 
 if __name__ == "__main__":
+    from warnings import warn
+
+    warn(NOTE)
     app()

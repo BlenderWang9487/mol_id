@@ -5,11 +5,13 @@ import pytorch_lightning as pl
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from transformers import PreTrainedTokenizerFast
 
-from ..models.net import ModelArgs, Transformer, TransformerOutput, init_weights_impl
+from ..models.net import (ModelArgs, Transformer, TransformerOutput,
+                          init_weights_impl)
+from ..molformer_tokenizer import MolTranBertTokenizer
 from ..utils.helpers import SmilesCollator, make_mlm_input_impl
-from ..utils.optim import AdamWConfig, get_cosine_schedule_with_warmup_and_min_lr_lambda
+from ..utils.optim import (AdamWConfig,
+                           get_cosine_schedule_with_warmup_and_min_lr_lambda)
 
 
 class PretrainLightningModule(pl.LightningModule):
@@ -18,8 +20,6 @@ class PretrainLightningModule(pl.LightningModule):
         # config
         config: dict,
         adamw_config: dict,
-        # tokenizer
-        tokenizer_path: str,
         # dataset
         dataset_dir: str,
         valid_size: float = 0.005,
@@ -53,9 +53,7 @@ class PretrainLightningModule(pl.LightningModule):
 
         self.adamw_config = AdamWConfig(**adamw_config)
 
-        self.tokenizer: PreTrainedTokenizerFast = (
-            PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
-        )
+        self.tokenizer = MolTranBertTokenizer()
         self.collator = SmilesCollator(
             self.tokenizer, max_len=self.model_config.max_seq_len
         )

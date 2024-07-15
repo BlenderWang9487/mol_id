@@ -1,7 +1,7 @@
 import torch
-from transformers import PreTrainedTokenizerFast
 
 from mol_id import Transformer, TransformerOutput
+from mol_id.molformer_tokenizer import MolTranBertTokenizer
 from mol_id.utils.helpers import SmilesCollator
 
 device = "cuda"
@@ -9,7 +9,7 @@ pretrained = "<pretrained model dir>"
 
 smiles = ["c1cc(oc1)C(=O)N[C@@H]2C[NH+]3CCC2CC3", "c1cc(ccc1CO)C(=O)N2CCCCC2"]
 model = Transformer.from_pretrained(pretrained).to(device)
-tokenizer = PreTrainedTokenizerFast.from_pretrained(pretrained)
+tokenizer = MolTranBertTokenizer()
 
 # because we use flash attention varlen api, so the input shape is different from common transformers input
 # we need to use the collator to collate the input to generate the input_ids, cu_seqlens, max_seqlen

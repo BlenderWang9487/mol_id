@@ -6,10 +6,10 @@ import typer
 import wandb
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
-from transformers import PreTrainedTokenizerFast
 
 from .lightning_module.pretrain_module import PretrainLightningModule
 from .models.net import ModelArgs
+from .molformer_tokenizer import MolTranBertTokenizer
 from .utils.helpers import get_time_str
 from .utils.optim import AdamWConfig
 
@@ -21,7 +21,6 @@ app = typer.Typer(pretty_exceptions_enable=False)
 @app.command()
 def train(
     dataset_dir: str,
-    tokenizer_path: str,
     # model config
     dim: int = 320,
     n_layers: int = 12,
@@ -80,9 +79,7 @@ def train(
     print("version:", version)
 
     print("-- init config --")
-    tok: PreTrainedTokenizerFast = PreTrainedTokenizerFast.from_pretrained(
-        tokenizer_path
-    )
+    tok = MolTranBertTokenizer()
     model_config = ModelArgs(
         dim=dim,
         n_layers=n_layers,
@@ -176,15 +173,19 @@ def train(
 
 
 @app.command()
-def to_pytorch(
-    ckpt_path: Path,
-    output_dir: Path = None
-):
+def to_pytorch(ckpt_path: Path, output_dir: Path = None):
     if output_dir is None:
-        output_dir = ckpt_path.parent.parent / "pytorch-ckpts" / ckpt_path.name.removesuffix('.ckpt')
-    module = PretrainLightningModule.load_from_checkpoint(str(ckpt_path), map_location='cpu')    
+        output_dir = (
+            ckpt_path.parent.parent
+            / "pytorch-ckpts"
+            / ckpt_path.name.removesuffix(".ckpt")
+        )
+    module = PretrainLightningModule.load_from_checkpoint(
+        str(ckpt_path), map_location="cpu"
+    )
     module.model.save_pretrained(str(output_dir))
     module.tokenizer.save_pretrained(str(output_dir))
+
 
 @app.command()
 def placeholder():

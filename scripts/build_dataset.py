@@ -1,3 +1,4 @@
+import sys
 from functools import partial
 from pathlib import Path
 
@@ -5,7 +6,9 @@ import datasets
 import numpy as np
 import typer
 from rdkit import Chem
-from transformers import PreTrainedTokenizerFast
+
+sys.path.append(str(Path(__file__).parent.parent))
+from mol_id.molformer_tokenizer import MolTranBertTokenizer
 
 
 def normalize_smiles(
@@ -24,7 +27,7 @@ def normalize_smiles(
 
 def filter_func(
     smiles: str,
-    tokenizer: PreTrainedTokenizerFast,
+    tokenizer: MolTranBertTokenizer,
     unk_id: int,
     max_len: int = 512,  # after tokenization
     min_len: int = 8,  # after tokenization
@@ -66,7 +69,6 @@ app = typer.Typer(pretty_exceptions_enable=False)
 def build(
     data_path: Path,
     save_path: Path,
-    pretrained_tokenizer: Path,
     max_len: int = 512,  # after tokenization
     min_len: int = 8,  # after tokenization
     canonical: bool = True,
@@ -77,9 +79,7 @@ def build(
     cache_dir: Path = None,
 ):
     files = list(data_path.glob("*.txt")) if data_path.is_dir() else [data_path]
-    tok: PreTrainedTokenizerFast = PreTrainedTokenizerFast.from_pretrained(
-        pretrained_tokenizer
-    )
+    tok = MolTranBertTokenizer()
     unk_id = tok.unk_token_id
     print("### unk_id:", unk_id)
     composed_filter = partial(
