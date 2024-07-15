@@ -1,4 +1,3 @@
-import sys
 from functools import partial
 from pathlib import Path
 
@@ -7,8 +6,7 @@ import numpy as np
 import typer
 from rdkit import Chem
 
-sys.path.append(str(Path(__file__).parent.parent))
-from mol_id.molformer_tokenizer import MolTranBertTokenizer
+from .molformer_tokenizer import MolTranBertTokenizer
 
 
 def normalize_smiles(
@@ -43,6 +41,7 @@ def filter_func(
         return_token_type_ids=False,
         return_attention_mask=False,
         return_length=True,
+        return_tensors="np",
     )
     l = tok_output["length"][0]
     if l > max_len or l < min_len:
@@ -59,7 +58,7 @@ def file_iterator(files: list[Path], smiles_filter):
                 smiles: str | None = smiles_filter(line.split(maxsplit=1)[0])
                 if smiles is None:
                     continue
-                yield {"smiles": smiles, "strlen": len(smiles)}
+                yield {"smiles": smiles}
 
 
 app = typer.Typer(pretty_exceptions_enable=False)

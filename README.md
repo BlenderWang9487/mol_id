@@ -15,6 +15,8 @@ pip install lightning transformers datasets typer wandb rdkit
 FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE pip install flash-attn --no-build-isolation
 ```
 
+NOTE: the following parts are still under development
+
 ## Model weight
 
 Pretrain weight (trained on 50M zinc SMILES for 5 epoch) is freely available on huggingface
