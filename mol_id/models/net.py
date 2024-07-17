@@ -238,6 +238,7 @@ class Transformer(nn.Module):
         cu_seqlens: torch.Tensor = None,
         max_seqlen: int = None,
         output_logits: bool = True,
+        **kwargs,
     ):
         """
         Perform a forward pass through the Transformer model.
